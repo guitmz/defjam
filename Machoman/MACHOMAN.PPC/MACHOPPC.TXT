@@ -1,0 +1,229 @@
+                            Infecting Mach-O Files
+                              roy g biv / defjam
+                               PowerPC  version
+
+                                 -= defjam =-
+                                  since 1992
+                     bringing you the viruses of tomorrow
+                                    today!
+
+
+Former  DOS/Win16  virus writer, author of several virus  families,  including
+Ginger  (see Coderz #1 zine for terrible buggy example, contact me for  better
+sources  ;),  and Virus Bulletin 9/95 for a description of what   they  called
+Rainbow.   Co-author  of  world's first virus using circular  partition  trick
+(Orsam, coded with Prototype in 1993).  Designer of world's first XMS swapping
+virus  (John Galt, coded by RT Fishel in 1995, only 30 bytes stub, the rest is
+swapped  out).   Author of world's first virus using Thread Local Storage  for
+replication  (Shrug, see Virus Bulletin 6/02 for a description, but they  call
+it Chiton), world's first virus using Visual Basic 5/6 language extensions for
+replication  (OU812), world's first Native executable virus (Chthon),  world's
+first  virus  using process co-operation to prevent termination  (Gemini,  see
+Virus  Bulletin 9/02 for a description), world's first virus using polymorphic
+SMTP  headers (JunkMail, see Virus Bulletin 11/02 for a description),  world's
+first viruses that can convert any data files to infectable objects (Pretext),
+world's  first  32/64-bit  parasitic  EPO .NET  virus  (Croissant,  see  Virus
+Bulletin  11/04  for a description, but they call it Impanate), world's  first
+virus  using  self-executing HTML (JunkHTMaiL, see Virus Bulletin 7/03  for  a
+description), world's first virus for Win64 on Intel Itanium (Shrug, see Virus
+Bulletin 6/04 for a description, but they call it Rugrat), world's first virus
+for  Win64 on AMD AMD64 (Shrug), world's first cross-infecting virus for Intel
+IA32  and  AMD  AMD64  (Shrug),  world's  first  viruses  that  infect  Office
+applications  and  script  files  using the same  code  (Macaroni,  see  Virus
+Bulletin  11/05  for  a description, but they call it Macar),  world's   first
+viruses  that  can infect both VBS and JScript using the same code (ACDC,  see
+Virus  Bulletin 11/05 for a description, but they call it Cada), world's first
+virus  that  can  infect  CHM files (Charm, see Virus  Bulletin  10/06  for  a
+description,  but they call it Chamb), world's first IDA plugin virus (Hidan),
+world's  first  viruses that use the Microsoft Script Encoder  to  dynamically
+encrypt  the  virus  body  (Screed), world's first virus  for  StarOffice  and
+OpenOffice (Starbucks), world's first virus IDC virus (ID10TiC), world's first
+polymorphic  virus  for Win64 on AMD AMD64, and world's first virus  that  can
+infect  Intel-format  Mach-O files (MachoMan).  Author of  various  retrovirus
+articles  (eg  see  Vlad #7 for the strings that make your code  invisible  to
+TBScan).  This is my second virus for OSX.  It is the world's first virus that
+can infect PowerPC-format Mach-O files.
+
+
+What is a Mach-O file?
+
+Mach-O is the native file format used by OSX.  There is a little similarity to
+Portable  Executable  files,  but not much.  Mach-O files are  collections  of
+segments.  Each segment can contain one or more sections, which have different
+protection attributes.
+
+
+What does a Mach-O file look like?
+
+Everything about the format is public, most of the format is in loader.h.  The
+file  header  structure is called mach_header.  Each of the fields is  32-bits
+large.  It has this format:
+
+Offset  Field                   Description
+0x00    magic                   sig (0xfeedface for PowerPC)
+0x04    cputype                 0x12 (PowerPC)
+0x08    cpusubtype              specific architecture
+0x0c    filetype                0x02 if executable
+0x10    ncmds                   number of commands following
+0x14    sizeofcmds              total size of commands
+0x18    flags
+
+The commands are used for many different purposes, such as describing segments
+and  sections,  initial values of the CPU registers for the main  thread,  and
+resolving symbols (equivalent to imports in PE files).
+
+The load_command structure has this format:
+
+Offset  Field                   Description
+0x00    cmd                     type of command
+0x04    cmdsize                 number of bytes in command
+                                (the value here can be larger than the command
+                                data,  so this field must be used to reach the
+                                next command, do not rely on the command data)
+
+Interesting commands are LC_SEGMENT (1) and LC_UNIXTHREAD (5).  The LC_SEGMENT
+command  describes  a segment of memory.  It is equivalent to a section in  PE
+files.  The segment_command structure has this format:
+
+Offset  Size    Field           Description
+0x00    16      segname         name of segment
+                                (ignored, just like PE)
+0x10    4       vmaddr          segment *virtual* address
+0x14    4       vmsize          segment virtual size
+0x18    4       fileoff         segment file offset
+0x1c    4       filesize        segment file size (0 means empty)
+0x20    4       maxprot         maximum protection attributes
+                                (can disallow writable code, for
+                                example, by clearing PROT_WRITE bit)
+0x24    4       initprot        initial protection attributes
+                                (combination of READ, WRITE, EXEC, but
+                                PROT_WRITE requires PROT_READ)
+0x28    4       nsects          number of sections following
+0x2c    4       flags
+
+A  section  is  a  piece  of memory within  a  segment.   The  section_command
+structure has this format:
+
+Offset  Size    Field           Description
+0x00    16      sectname        name of section
+0x10    16      segname         name of host segment
+0x20    4       addr            section virtual address
+0x24    4       size            section file size
+0x28    4       offset          section file offset
+0x2c    4       align           section alignment
+0x30    4       reloff          relocation data file offset
+0x34    4       nreloc          relocation data item count
+0x38    4       flags
+0x3c    4       reserved1       interpretation depends on flags
+0x40    4       reserved2       interpretation depends on flags
+
+The flags are a packed structure, the low 8 bits describe the section
+type, the top 8 bits describe the section user attributes, the next 8
+bits describe the section system attributes.
+
+
+How do we infect it?
+
+I  thought about this problem for a long time.  The problem with the format is
+that  some structures, like the symbol tables access sections by number, so we
+can't  insert  sections or segments.  We could add a section to the  end,  but
+that would require possibly moving file data to make room, and some structures
+are difficult to parse properly, so that's not a good option.  I thought about
+a  cavity  infector,  but the only good cavity that I could find  was  in  the
+__jump_table  section,  but the size cannot be altered, because it is used  by
+the  symbol loader.  I considered appending to the __LINKEDIT segment, but  it
+is  discarded by the loader.  I thought about moving some code from the __text
+section  to  the end of the file, and placing myself in the space, but then  I
+would need to open the file to read it back.
+
+Eventually, I started thinking about it differently.  Each file is supposed to
+start  with  a __PAGEZERO segment, which marks the first 0x1000 bytes  as  not
+accessible.  The file size there is 0, but I wondered if I could change it and
+load  my  code?  Amazingly, it is so.  All I had to do was pad the file  to  a
+multiple of 4kb first, to avoid a bus error, then append my code.  After that,
+I  set the file offset and size fields, and the protection flags so I can run.
+
+
+How to get control?
+
+This was a problem, too, for some time.  I was using IDA to load the file, but
+at  first I didn't see anywhere the entrypoint value.  It seems that the Ilfak
+had  the  same problem, because IDA assumes that the entrypoint is always  the
+first byte in the __text section.  Of course, that's not true. :)
+
+
+Introducing LC_UNIXTHREAD
+
+The  LC_UNIXTHREAD  load  command describes the register values for  the  main
+thread  in  the file.  Yes, that includes SRR0 (PowerPC version of  EIP).   By
+simply  changing  the value in the SRR0 field to another value, I was able  to
+move the entrypoint around, but IDA did  not notice, and continued to show the
+old  one!  It's a new type of entrypoint obscuring. ;)  Even more  interesting
+was  that  IDA  refuses to load any segment which contains no  sections  (like
+__LINKEDIT   and,  more  importantly,  __PAGEZERO).  That  means  my  code  is
+invisible, yet it runs.
+
+The structure is of the thread_command type.  It has this format:
+
+Offset  Size    Field           Description
+0x00    4       flavor          type of data following
+0x04    4       count           number of dwords following
+
+The  interpretation of the thread information depends on the data flavor.   We
+are  interested  only in the PPC_NEW_THREAD_STATE (1).  In that case, it is  a
+ppc_thread_state_t structure, and it has the format:
+
+Offset  Size    Field
+0x00    4       srr0
+0x04    4       srr1
+0x08    4       r0
+0x0c    4       r1
+0x10    4       r2
+0x14    4       r3
+0x18    4       r4
+0x1c    4       r5
+0x20    4       r6
+0x24    4       r7
+0x28    4       r8
+0x2c    4       r9
+0x30    4       r10
+0x34    4       r11
+0x38    4       r12
+0x3c    4       r13
+0x40    4       r14
+0x44    4       r15
+0x48    4       r16
+0x4c    4       r17
+0x50    4       r18
+0x54    4       r19
+0x58    4       r20
+0x5c    4       r21
+0x60    4       r22
+0x64    4       r23
+0x68    4       r24
+0x6c    4       r25
+0x70    4       r26
+0x74    4       r27
+0x78    4       r28
+0x7c    4       r29
+0x80    4       r30
+0x84    4       r31
+0x88    4       cr
+0x8c    4       xer
+0x90    4       lr
+0x94    4       ctr
+0x98    4       mq
+0x9c    4       vrsave
+
+and then we are done.
+
+
+Greets to friendly people (A-Z):
+
+Active - Benny - Malum - Obleak - Prototype - Ratter - Ronin - RT Fishel -
+sars - SPTH - The Gingerbread Man - Ultras - uNdErX - Vallez - Vecna -
+VirusBuster - Whitehead
+
+
+rgb/defjam nov 2006
+iam_rgb@hotmail.com

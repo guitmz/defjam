@@ -1,0 +1,203 @@
+                              Permutation By SEH
+                              roy g biv / defjam
+ 
+                                 -= defjam =-
+                                  since 1992
+                     bringing you the viruses of tomorrow
+                                    today!
+
+
+Former  DOS/Win16  virus writer, author of several virus  families,  including
+Ginger  (see Coderz #1 zine for terrible buggy example, contact me for  better
+sources  ;),  and Virus Bulletin 9/95 for a description of what   they  called
+Rainbow.   Co-author  of  world's first virus using circular  partition  trick
+(Orsam, coded with Prototype in 1993).  Designer of world's first XMS swapping
+virus  (John Galt, coded by RT Fishel in 1995, only 30 bytes stub, the rest is
+swapped  out).   Author of world's first virus using Thread Local Storage  for
+replication  (Shrug, see Virus Bulletin 6/02 for a description, but they  call
+it Chiton), world's first virus using Visual Basic 5/6 language extensions for
+replication  (OU812), world's first Native executable virus (Chthon),  world's
+first  virus  using process co-operation to prevent termination  (Gemini,  see
+Virus  Bulletin 9/02 for a description), world's first virus using polymorphic
+SMTP  headers (JunkMail, see Virus Bulletin 11/02 for a description),  world's
+first viruses that can convert any data files to infectable objects (Pretext),
+world's  first  32/64-bit  parasitic  EPO .NET  virus  (Croissant,  see  Virus
+Bulletin  11/04  for a description, but they call it Impanate), world's  first
+virus  using  self-executing HTML (JunkHTMaiL, see Virus Bulletin 7/03  for  a
+description), world's first virus for Win64 on Intel Itanium (Shrug, see Virus
+Bulletin 6/04 for a description, but they call it Rugrat), world's first virus
+for  Win64 on AMD AMD64 (Shrug), world's first cross-infecting virus for Intel
+IA32  and  AMD  AMD64  (Shrug),  world's  first  viruses  that  infect  Office
+applications  and  script  files  using the same  code  (Macaroni,  see  Virus
+Bulletin  11/05  for  a description, but they call it Macar),  world's   first
+viruses  that  can infect both VBS and JScript using the same code (ACDC,  see
+Virus  Bulletin 11/05 for a description, but they call it Cada), world's first
+virus  that  can  infect  CHM files (Charm, see Virus  Bulletin  10/06  for  a
+description,  but they call it Chamb), world's first IDA plugin virus (Hidan),
+world's  first  viruses that use the Microsoft Script Encoder  to  dynamically
+encrypt  the  virus  body  (Screed), world's first virus  for  StarOffice  and
+OpenOffice (Starbucks), world's first virus IDC virus (ID10TiC), world's first
+polymorphic  virus for Win64 on AMD AMD64 (Boundary, see Virus Bulletin  12/06
+for  a description, but they call it Bounds), and world's first virus that can
+infect  Intel-format  and  PowerPC-format Mach-O files  (MachoMan,  see  Virus
+Bulletin  01/07  for  a description, but they call it  Macarena).   Author  of
+various  retrovirus articles (eg  see  Vlad #7 for the strings that make  your
+code  invisible to TBScan).  Went to sleep for a number of years.  I am  awake
+now. ;)
+
+
+What is permutation?
+
+According  to the dictionary, to permutate is to arrange items in a  different
+sequence.   When it is applied to code, it is to arrange the instructions in a
+different order.  This general idea is not a new one, but I present a specific
+new extension to it.
+
+Previous   works  on  permutation  created  blocks  of  variable  numbers   of
+instructions,  linked  together by jumps.  This presents no challenges to  CPU
+emulators  and tracers, since the execution flow is obvious.  It also makes it
+easy to detect.
+
+
+What's the solution?
+
+Instead  of using jumps to link instructions, I decided to use an  instruction
+that  will  cause  an  exception, followed by the delta  offset  of  the  next
+instruction.   By  choosing an exception to move to the next  instruction,  we
+achieve  a  level of anti-emulation  because  perhaps not many emulators  will
+support  that  properly, and by choosing an instruction like INT3, we  achieve
+anti-debugging at the same time.  Of course, the instruction that triggers the
+exception  can be replaced by anything else, even by longer instructions,  but
+INT3 is the smallest and best one.
+
+
+What does it look like?
+
+Here is an example of the code:
+
+        lods    dword ptr [esi]
+        _int3z
+        push    ebx
+        _int3z
+        add     ebx, eax
+        _int3z
+        or      eax, -1
+        _int3z
+
+The  _int3z  is a macro that holds the instruction that causes the  exception,
+and  points  to the next instruction (delta of zero).  During replication, the
+address  of each instruction is stored in a list, then randomly reordered, and
+then the delta is calculated and stored.
+
+
+Special instructions
+
+There  are  two instructions that require special handling: call  and  branch.
+There  is no need for any jump instruction because the exception performs that
+function.   Both  calls  and branches have a special format.   For  all  other
+instructions,  there  is one delta following the instruction.  For  calls  and
+branches,  there are two deltas.  The call has one delta for the subroutine to
+call, and one delta for the next instruction.  It looks like this:
+
+        call    callproc
+return:
+        _int3   nextinst
+callproc:
+        _int3   routine
+
+By  encoding  calls in this way, there is no need to fix up every call in  the
+code  whenever an instruction moves away.  Only the deltas are fixed up in the
+same way as for all other deltas.
+
+For the same reason as for call, the branch has one delta for the "true" case,
+and one delta for the "false" case.  It looks like this:
+
+        jxx     j_true
+j_false:
+        _int3   falseinst
+j_true:
+        _int3   trueinst
+
+By encoding branches in this way, all branches are short, and there is no need
+to  fix up every branch in the code whenever an instruction moves away.   Only
+the  deltas  are fixed up in the same way as for all other deltas.  Loops  and
+jecxz  instructions could be handled in the same way as this, but they are not
+currently not supported to reduce the code size.
+
+
+Exception Handling
+
+By  using exceptions to link the instructions, we can reduce every block to  a
+single  instruction.   It  means that there is no large constant part  of  the
+code.   Actually, that is not quite true.  Since we use exceptions to link the
+instructions,  we must have an exception handler.  The exception handler  code
+cannot be separated by exceptions.
+
+The exception handler looks like this:
+
+        pop     ecx
+        pop     edx
+        push    ecx
+        cmp     byte ptr [edx + ExceptionCode], exception and 0ffh
+        jne     seh_cont
+        mov     ecx, dword ptr [edx + ExceptionAddress]
+        movsx   eax, word ptr [ecx + instsize]
+        lea     ecx, dword ptr [ecx + eax + instsize + 2]
+        add     edx, 7fh
+        mov     dword ptr [edx + ContextEip - 7fh], ecx
+        xor     eax, eax
+
+seh_ret         label   near
+        ret
+seh_cont        label   near
+        _int3   otherexc
+
+If  we use the INT3 instruction to raise the exceptions, then we can insert an
+"inc  ecx"  before the movsx instruction, and change the movsx instruction  to
+
+        movsx   eax, word ptr [ecx]
+
+and change the lea instruction to
+
+        lea     ecx, dword ptr [ecx + eax + instsize + 1]
+
+Then  we can swap the registers randomly to make the block not constant.   For
+Windows  9x/Me/NT/2000, only eax, ecx, and edx are available  to us, but  that
+still has lots of possible combinations.  We could use ebx, esi, edi, ebp, but
+only  if we saved them first.  For Windows XP SP2 and later, ebx, esi, edi are
+available  to us without saving them  first.  We would still need to save  ebp
+first if we wanted to use it.
+
+
+Permutation
+
+In  order  to  reorder  the instructions, we first must make  a  list  of  the
+instructions.   To make a list of the instructions, we have to find the  first
+instruction.   This is easy for us because we have an exception handler  which
+is always the first instruction.  We retrieve the handler address from fs:[0],
+then  use  a  length  disassembler  engine to calculate  the  length  of  each
+instruction,  and to find the location of the delta after the instruction.  We
+store the address of each instruction, the length of each instruction, and the
+address  of  the next instruction.  For calls and branches, we also store  the
+address that corresponds to the second delta.
+
+When we reach the end of the code, we know how many instruction "slots" exist.
+For  each instruction, we randomly choose a new slot for that instruction,  if
+it  is not occupied already.  We assign a new slot to every instruction,  then
+for  each  instruction,  we find the old address of the next  instruction  and
+calculate the delta to the new address of the next instruction.  When we reach
+the  end of the code again, we have a new generation ready to use.  Since  the
+execution  of so many exceptions is very slow, we produce only one  generation
+per  execution  of the code.  This also makes it harder for  analysis  because
+then every file infected during a single pass looks exactly the same.
+
+
+Greets to friendly people (A-Z):
+
+Active - Benny - Malum - Obleak - Prototype - Ratter - Ronin - RT Fishel -
+sars - SPTH - The Gingerbread Man - Ultras - uNdErX - Vallez - Vecna -
+VirusBuster - Whitehead
+
+
+rgb/defjam jan 2007
+iam_rgb@hotmail.com

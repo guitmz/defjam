@@ -1,0 +1,129 @@
+                          The Hiew Plugin framework
+                              roy g biv / defjam
+
+                                 -= defjam =-
+                                  since 1992
+                     bringing you the viruses of tomorrow
+                                    today!
+
+
+Former  DOS/Win16  virus writer, author of several virus  families,  including
+Ginger  (see Coderz #1 zine for terrible buggy example, contact me for  better
+sources  ;),  and Virus Bulletin 9/95 for a description of what   they  called
+Rainbow.   Co-author  of  world's first virus using circular  partition  trick
+(Orsam, coded with Prototype in 1993).  Designer of world's first XMS swapping
+virus  (John Galt, coded by RT Fishel in 1995, only 30 bytes stub, the rest is
+swapped  out).   Author of world's first virus using Thread Local Storage  for
+replication  (Shrug, see Virus Bulletin 6/02 for a description, but they  call
+it Chiton), world's first virus using Visual Basic 5/6 language extensions for
+replication  (OU812), world's first Native executable virus (Chthon),  world's
+first  virus  using process co-operation to prevent termination  (Gemini,  see
+Virus  Bulletin 9/02 for a description), world's first virus using polymorphic
+SMTP  headers (JunkMail, see Virus Bulletin 11/02 for a description),  world's
+first viruses that can convert any data files to infectable objects (Pretext),
+world's  first  32/64-bit  parasitic  EPO .NET  virus  (Croissant,  see  Virus
+Bulletin  11/04  for a description, but they call it Impanate), world's  first
+virus  using  self-executing HTML (JunkHTMaiL, see Virus Bulletin 7/03  for  a
+description), world's first virus for Win64 on Intel Itanium (Shrug, see Virus
+Bulletin 6/04 for a description, but they call it Rugrat), world's first virus
+for  Win64 on AMD AMD64 (Shrug), world's first cross-infecting virus for Intel
+IA32  and  AMD  AMD64  (Shrug),  world's  first  viruses  that  infect  Office
+applications  and  script  files  using the same  code  (Macaroni,  see  Virus
+Bulletin  11/05  for  a description, but they call it Macar),  world's   first
+viruses  that  can infect both VBS and JScript using the same code (ACDC,  see
+Virus  Bulletin 11/05 for a description, but they call it Cada), world's first
+virus  that  can  infect  CHM files (Charm, see Virus  Bulletin  10/06  for  a
+description,  but they call it Chamb), world's first IDA plugin virus  (Hidan,
+see Virus Bulletin 3/07 for a description), world's first viruses that use the
+Microsoft  Script  Encoder  to dynamically encrypt the  virus  body  (Screed),
+world's  first virus for StarOffice and OpenOffice (Starbucks), world's  first
+virus  IDC  virus (ID10TiC), world's first polymorphic virus for Win64 on  AMD
+AMD64  (Boundary, see Virus Bulletin 12/06 for a description, but they call it
+Bounds),  world's first virus that can infect Intel-format and  PowerPC-format
+Mach-O  files  (MachoMan,  see  Virus Bulletin 01/07 for  a  description,  but
+they  call  it  Macarena), world's first virus that uses  Unicode  escapes  to
+dynamically encrypt the virus body, world's first self-executing PIF (Spiffy),
+world's  first  self-executing  LNK (WeakLNK), world's first virus  that  uses
+virtual  code  (Relock),  world's  first virus to use  FSAVE  for  instruction
+reordering (Mimix), and world's first virus for ODbgScript (Volly).  Author of
+various  retrovirus  articles (eg see Vlad #7 for the  strings that make  your
+code  invisible to TBScan).  This is my eighteenth virus for Win32.  It is the
+world's first Hiew plugin virus.
+
+
+What is it?
+
+Many  people know about Hiew.  It is great tool for viewing and editing files.
+It  supports arithmetic operations and has an assembler, so it can be used for
+all  kinds  of reverse-engineering, unpacking, decrypting, etc.  In case  that
+was not enough functionality, it also supports plugins.
+
+
+Plugins
+
+It  is  amazing, but I never used Hiew before until recently.  Immediately,  I
+wondered  if a Hiew virus could be possible.  There is an API to open the file
+for writing, so it is possible to infect the file that is being examined.
+
+Hiew  Plugins are DLL files with a special extension.  The extension to use is
+"hem".   The  plugin  must  contain one export.  This export  must  be  called
+"Hem_Load".  The export points to a function.  The function receives a pointer
+to  a hiewinfo_tag structure.  We use only two fields in the structure.   They
+are  the gate and handle fields.  The gate field contains the pointer to  Hiew
+functions.   The  handle  field contains the value that  identifies  the  file
+uniquely.   All functions that we call must pass the handle, else the function
+will fail.
+
+The  structure also contains a field that receives a pointer to a  heminfo_tag
+structure.   We  must set in there the pointer to our  heminfo_tag  structure.
+The  heminfo_tag structure contains everything about our plugin.  It tells the
+name  to  display in the plugin list, the mode when the plugin can be  called,
+and the entrypoint for the plugin.
+
+
+API
+
+The  Hiew API is easy to use.  We create a structure which contains the ID  of
+the function to call, then pass the structure to the gate function.  Hiew will
+change  the structure if the function will do that (such as GETDATA), or  read
+or write bytes in the file, etc.
+
+When the plugin entrypoint is called, the file being examined can be accessed.
+Before  then,  no  API can be called.  We can find out about  the  file  being
+examined  by  calling the GETDATA function.  The GETDATA function fills  in  a
+structure  that contains the filename and filesize, with some other things.  I
+was  interested only in the file size, since I use it for an infection marker,
+and the filename since I want to check for files protected by SFC.
+
+Since Hiew supports read and write of the file, we have almost everything that
+we  need  to  infect  the file, in very oldskool way. :)   There  is  no  file
+mapping  here,  no SEH.  The only thing that was missing for me was the  check
+for  SFC.   For  that, I needed three functions from kernel32.dll.   They  are
+GetProcAddress,  LoadLibraryA, and MultiByteToWideChar.  Yes, Hiew is complete
+ASCII  internally.  It cannot support Unicode, so we must convert the filename
+ourselves.   I used the GETDATA function to get the filename, then convert  to
+Unicode with MultiByteToWideChar, LoadLibraryA(sfc.dll), and GetProcAddress of
+SfcIsFileProtected.   Everything else can be done with Hiew API.  The read and
+write  functions accept a structure that contains the file offset, so there is
+no seek function necessary.  Hiew takes care to remove the read-only attribute
+when the file is opened for write.
+
+
+What about stealth?
+
+An obvious extension to the infection via plugin is to stealth the result.  As
+it is right now, the changes don't show until the file is opened again, but by
+the  time the plugin is loaded, Hiew has loaded the whole file, and I couldn't
+find a way to load automatically to hide the code.  That's for someone else to
+discover. ;)
+
+
+Greets to friendly people (A-Z):
+
+Active - Benny - izee - jqwerty - Malum - Obleak - Prototype - Ratter -
+Ronin - RT Fishel - sars - SPTH - The Gingerbread Man - Ultras - uNdErX -
+Vallez - Vecna - Whitehead
+
+
+rgb/defjam sep 2009
+iam_rgb@hotmail.com
