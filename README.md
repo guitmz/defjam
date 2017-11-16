@@ -1,9 +1,8 @@
 # defjam
 
 This is a repository with a collection of all viruses I have made by roy g biv from his time in defjam and 29A.  All of his codes span almost 30 years of work, and they are spreaded in many places. So, I decided gather them all in one place.
-If you know where to find the missing ones or have information that could be useful, please contact me!
 
-Mail: 
+If you know where to find the missing ones or have information that could be useful, please contact me!
 
 
 | Project  | Date | Author | Satus |
