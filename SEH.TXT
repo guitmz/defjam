@@ -1,0 +1,141 @@
+                                  Subtle SEH
+                              roy g biv / defjam
+
+
+What is it?
+
+Everyone   knows   about  Structured  Exception  Handling  these  days.  First
+demonstrated  in  the Cabanas virus in 1998 by jqwerty, now many  viruses  and 
+other  applications use it for obfuscating code and anti-debugging tricks.  It
+usually looks something like this:
+
+        call    set_seh
+        ;handler code would go here
+set_seh:
+        push    dword ptr fs:[0]
+        mov     dword ptr fs:[0], esp
+        ;code to produce exception would go here
+
+
+So  now  if we see such a code sequence we know to  expect  an  anti-debugging 
+trick is coming soon.  Probably some emulators have recogniser code  for  this
+thing  and  trigger  some  heuristics, too.  So I tried to think of a  way  to 
+register a Structured  Exception  Handler  without obvious write to fs:0. Here
+are some of those ways. First way gets base of fs from TIB.
+
+        mov     eax, dword ptr fs:[tibSelf]
+        call    set_seh
+        ;handler code would go here
+set_seh:
+        push    dword ptr ds:[eax]
+        mov     dword ptr ds:[eax], esp
+        int     3
+
+Second way gets base of fs from descriptor table.
+
+        lea     eax, dword ptr [esp - 2]
+        push    eax
+        push    fs
+        push    -2                      ;GetCurrentThread()
+        call    GetThreadSelectorEntry
+        pop     eax                     ;bits 00-23 of base
+        bswap   eax
+        mov     al, byte ptr [esp + 1]  ;bits 24-31 of base
+        bswap   eax
+        call    set_seh
+        ;handler code would go here
+set_seh:
+        push    dword ptr ds:[eax]
+        mov     dword ptr ds:[eax], esp
+        int     3                       ;cause exception
+
+Third way gets base of fs from descriptor table, using hard-coded fs value, so
+there is no fs reference.
+
+        call    skip_k32
+        db      "kernel32", 0
+skip_k32:
+        call    GetModuleHandleA
+        call    skip_iswow
+        db      "IsWow64Process", 0
+skip_iswow:
+        push    eax
+        call    GetProcAddress
+        xchg    ecx, eax
+        jecxz   not_xp                  ;XP and later only
+        push    eax
+        push    esp
+        push    -1
+        call    ecx
+        pop     ecx
+not_xp:
+        lea     eax, dword ptr [esp - 2]
+        push    eax
+        push    3bh                     ;all 32-bit Windows
+        jecxz   not_v64
+        pop     eax
+        push    53h                     ;Vista64
+not_v64:
+        push    -2                      ;GetCurrentThread()
+        call    GetThreadSelectorEntry
+        pop     eax
+        bswap   eax
+        mov     al, byte ptr [esp + 1]
+        bswap   eax
+        call    set_seh
+        ;handler code would go here
+set_seh:
+        push    dword ptr ds:[eax]
+        mov     dword ptr ds:[eax], esp
+        int     3                       ;cause exception
+
+but  all  of these ways have obvious push and mov using esp.  There  are  some 
+other  ways, too, such as NtSetLdtEntries(), but I was told that it  does  not
+work on 64-bit Windows.   Anyway, altering fs or gs introduces race  condition 
+against thread switch.  When switch occurs, fs and gs values  are  restored to
+their proper values.   Then I found another way.   This way writes to fs using
+ss:esp.  The  code  must  be in writable memory because it is  also  used  for 
+stack.  Altering ss has no race condition because only an exception (including 
+debugger single-step, heh!) will change the value back.
+
+        push    8               ;replaced by "previous SEH"
+        pop     eax             ;replaced by "previous SEH"
+        call    delta           ;instruction must end on dword-aligned offset
+                                ;replaced by handler address
+ife DEP                         ;you must define this variable 0 or 1
+        push    -1              ;set "previous SEH"
+                                ;if hardware DEP is not enabled by Windows for process, then stack chain is checked
+                                ;all entries must be on stack, and finish with -1 entry
+else
+        push    eax             ;set "previous SEH", just saves one byte, no other effect
+                                ;if hardware DEP is enabled by Windows for process, then stack chain is not checked
+                                ;Windows assumes that data execution will cause exception
+endif
+        mov     ecx, fs         ;push would require extra dword before previous SEH
+        mov     ss, ecx         ;emulator killer, and anti-single-step, too ;)
+        xchg    esp, eax        ;fs:8
+        call    set_seh         ;change stack limit so our code looks like stack
+set_seh:
+        push    eax             ;set new SEH
+                                ;cannot appear after actual handler, otherwise handler looks like is on stack
+                                ;can restore ss here if you want to delay exception
+        mov     esp, ebp        ;esp must be valid on except. Windows will restore ss for us
+                                ;cannot use leave to pop from stack because current ss limit is too small
+                                ;to delay exception, add jmp here to somewhere else
+delta:
+        pop     esp             ;cause exception on second pass
+        call    esp             ;set handler address
+        ;handler code would go here
+ 
+No obvious memory writes.
+
+
+Greets to friendly people (A-Z):
+
+Active - Benny - izee - Malum - Obleak - Prototype - Ratter - Ronin - 
+RT Fishel - sars - SPTH - The Gingerbread Man - Ultras - uNdErX -
+Vallez - Vecna - Whitehead
+
+
+rgb/defjam jun 2009
+iam_rgb@hotmail.com
