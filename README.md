@@ -38,15 +38,15 @@ For Boot infect/.SYS infect/Tiny load/Anti-Recovery/Piggybacking are available i
 | W32.Chthon  | 11/11/2001  | roy g biv |  Available |
 | W32.EfishNC  | 02/02/2002  | roy g biv |  Available |
 | W32.Gemini  | 14/02/2002  | roy g biv |  Available |
-| W32.EfishNC.B  | 03/03/2002  | roy g biv |  To be included |
+| W32.EfishNC.B  | 03/03/2002  | roy g biv |  Available |
 | W32.Junkmail  | 24/05/2002  | roy g biv |  Available |
 | VBS.Pretext  | 24/06/2002  | roy g biv |  To be included |
 | JS.Pretext  | 24/06/2002  | roy g biv |  To be included |
 | W32.EfishNC.C  | 12/12/2002  | roy g biv |  Available |
 | VBS.Conscrypt  | 01/02/2003  | roy g biv |  To be included |
 | JS.Conscrypt | 01/02/2003  | roy g biv |  To be included |
-| MSIL.Croissant | 03/03/2003  | roy g biv |  To be included |
-| W32.JunkHTMaiL | 07/05/2004  | roy g biv |  To be included |
+| MSIL.Croissant | 03/03/2003  | roy g biv |  Available |
+| W32.JunkHTMaiL | 07/05/2004  | roy g biv |  Available |
 | W64.Shrug (IA) | 06/05/2004  | roy g biv |  Available |
 | W64.Shrug (AMD) | 01/06/2004  | roy g biv |  Available |
 | W32/W64.Shrug | 32/10/2004  | roy g biv |  Available |
@@ -61,7 +61,7 @@ For Boot infect/.SYS infect/Tiny load/Anti-Recovery/Piggybacking are available i
 | SB.Starbucks  | 06/06/2006  | roy g biv |  To be included |
 | W32.Boundary  | 22/06/2006  | roy g biv |  Available |
 | IDC.ID10TiC  | 06/07/2006  | roy g biv |  Available |
-| W64.Boundary  | 08/07/2006  | roy g biv |  To be included |
+| W64.Boundary  | 08/07/2006  | roy g biv |  Available |
 | OSX.MachoMan (IA)  | 26/10/2006  | roy g biv |  Available |
 | OSX.MachoMan (PPC)  | 06/11/2006  | roy g biv |  Available |
 | W32.Stutter  | 21/01/2007  | roy g biv |  Available |
