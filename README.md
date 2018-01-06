@@ -33,7 +33,7 @@ For Boot infect/.SYS infect/Tiny load/Anti-Recovery/Piggybacking are available i
 
 | Project  | Date | Author | Satus |
 | ------------- | ------------- | ------------- | ------------- |
-| W32.Shrug     | 01/01/2001  |  roy g biv |  To be included |
+| W32.Shrug     | 01/01/2001  |  roy g biv |  Available |
 | W32.OU812  | 06/06/2001  | roy g biv |  Available |
 | W32.Chthon  | 11/11/2001  | roy g biv |  Available |
 | W32.EfishNC  | 02/02/2002  | roy g biv |  Available |
@@ -53,14 +53,14 @@ For Boot infect/.SYS infect/Tiny load/Anti-Recovery/Piggybacking are available i
 | JS and VBS/O97M.Macaroni  | 05/02/2005  | roy g biv |  To be included |
 | VBS/JS.ACDC | 25/02/2005  | roy g biv |  To be included |
 | W32.Charm | 05/04/2005  | roy g biv |  Available |
-| W32.Junkmail.B | 07/06/2005  | roy g biv |  To be included |
+| W32.Junkmail.B | 07/06/2005  | roy g biv |  Available |
 | W32.Hidan | 05/09/2005  | roy g biv |  Available |
 | W32.Hidan.B | 05/11/2005  | roy g biv |  Available |
 | VBS.Screed | 02/03/2006  | roy g biv |  To be included |
 | JS.Screed | 02/03/2006  | roy g biv |  To be included |
 | SB.Starbucks  | 06/06/2006  | roy g biv |  To be included |
 | W32.Boundary  | 22/06/2006  | roy g biv |  Available |
-| IDC.ID10TiC  | 06/07/2006  | roy g biv |  To be included |
+| IDC.ID10TiC  | 06/07/2006  | roy g biv |  Available |
 | W64.Boundary  | 08/07/2006  | roy g biv |  To be included |
 | OSX.MachoMan (IA)  | 26/10/2006  | roy g biv |  Available |
 | OSX.MachoMan (PPC)  | 06/11/2006  | roy g biv |  Available |
